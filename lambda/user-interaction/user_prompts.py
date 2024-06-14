@@ -1,15 +1,19 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
 import json
 import os
 import uuid
 import boto3
 import datetime 
 import jwt
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 AMAZONQ_APP_ID = os.environ["AMAZONQ_APP_ID"]
 AMAZONQ_REGION = os.environ["AMAZONQ_REGION"]
-#AMAZONQ_ENDPOINT_URL = f'https://qbusiness.{AMAZONQ_REGION}.api.aws' 
 IAM_ROLE_ARN = os.environ["IAM_ROLE_ARN"] 
-#print("AMAZONQ_ENDPOINT_URL:", AMAZONQ_ENDPOINT_URL)
 
 # Define a custom function to serialize datetime objects 
 def serialize_datetime(obj): 
@@ -17,17 +21,11 @@ def serialize_datetime(obj):
         return obj.isoformat() 
     raise TypeError("Type not serializable") 
 
-#qbusiness_client = boto3.client(
-#    service_name="qbusiness", 
-#    region_name=AMAZONQ_REGION,
-#    endpoint_url=AMAZONQ_ENDPOINT_URL
-#)
 
-def get_amazonq_response(qbusiness_client,prompt, context, amazonq_userid, attachments):
-    print(f"get_amazonq_response: prompt={prompt}, app_id={AMAZONQ_APP_ID}, context={context}")
+def get_amazonq_response(qbusiness_client,prompt, context, attachments):
+    logger.info(f"get_amazonq_response: prompt={prompt}, app_id={AMAZONQ_APP_ID}, context={context}")
     input = {
         "applicationId": AMAZONQ_APP_ID,
-#        "userId": amazonq_userid,
         "userMessage": prompt,
     }
 
@@ -42,36 +40,35 @@ def get_amazonq_response(qbusiness_client,prompt, context, amazonq_userid, attac
     if attachments:
         input["attachments"] = attachments
 
-    print("Amazon Q Input: ", input)
+    logger.info(f"Amazon Q Input: {json.dumps(input)}")
     try:
         resp = qbusiness_client.chat_sync(**input)
     except Exception as e:
-        print("Amazon Q Exception: ", e)
+        logger.info(f"Amazon Q Exception: {str(e)}")
         resp = {
             "systemMessage": "Amazon Q Error: " + str(e)
         }
-    print("Amazon Q Response: ", json.dumps(resp))
+    logger.info(f"Amazon Q Response: {json.dumps(resp, default=serialize_datetime)}")
     return resp
 
-def get_conversations(qbusiness_client,amazonq_userid, conversation_id, nextToken):
+def get_conversations(qbusiness_client,conversation_id, nextToken):
     input = {
         "applicationId": AMAZONQ_APP_ID,
-#        "userId": amazonq_userid,
         "conversationId": conversation_id
     }
 
     if nextToken:
         input["nextToken"] = nextToken
 
-    print("Amazon Q Input: ", input)
+    logger.info(f"Amazon Q Input: {json.dumps(input)}")
     try:
         resp = qbusiness_client.list_messages(**input)
     except Exception as e:
-        print("Amazon Q Exception: ", e)
+        logger.info(f"Amazon Q Exception: {str(e)}")
         resp = {
             "systemMessage": "Amazon Q Error: " + str(e)
         }
-    print("Amazon Q Response: ", json.dumps(resp, default=serialize_datetime))
+    logger.info(f"Amazon Q Response: {json.dumps(resp, default=serialize_datetime)}")
     return resp
 
 def get_qbusiness_client(idToken):
@@ -100,16 +97,16 @@ def get_qbusiness_client(idToken):
 
 def handler(event, context):
     request_body = json.loads(event["body"])
-    print(request_body)
+    logger.info(request_body)
     qbusiness_client=get_qbusiness_client(request_body['idToken'])
    
     if request_body['action'] == 'history':
-        amazonq_response = get_conversations(qbusiness_client,request_body['user_id'], request_body['conversationId'], request_body['nextToken'])
-        print(amazonq_response)
+        amazonq_response = get_conversations(qbusiness_client, request_body['conversationId'], request_body['nextToken'])
+        logger.info(amazonq_response)
 
     if request_body['action'] == 'query':
-        amazonq_response = get_amazonq_response(qbusiness_client,request_body['query'],request_body['context'] , request_body['user_id'], '')
-        print(amazonq_response)
+        amazonq_response = get_amazonq_response(qbusiness_client,request_body['query'],request_body['context'] , '')
+        logger.info(amazonq_response)
     
     response = {
         'statusCode': 200,

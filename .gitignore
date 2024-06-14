@@ -1,0 +1,8 @@
+.DS_Store
+finderapp/node_modules
+cfn-templates/out
+layers/boto3/python
+layers/jwt/python
+layers/yt_dlp/python
+layers/ffmpeg/bin
+deploy_*

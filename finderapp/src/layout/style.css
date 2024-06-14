@@ -1,0 +1,135 @@
+body {
+    background: rgb(138, 92, 102);
+    background: linear-gradient(270deg, rgba(138, 92, 102, 1) 0%, rgba(92, 39, 79, 1) 19%, rgba(44, 7, 70, 1) 61%, rgba(24, 30, 62, 1) 100%);
+}
+
+#top-nav {
+    position: sticky;
+    left: 0;
+    top: 0;
+    right: 0;
+    z-index: 1002;
+}
+
+#bottom-bar {
+    font-weight: 700;
+    font-family: var("Open Sans", "Helvetica Neue", "Roboto", "Arial", "sans-serif");
+    font-size: 14px;
+    background-color: rgb(15, 27, 42);
+    color: rgb(209, 213, 219);
+    text-align: center;
+    padding: 10px;
+}
+
+.home_body {
+    height: 100%;
+    margin: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.home_center {
+    height: 200px;
+    /* Adjust the height as needed */
+    text-align: center;
+    padding: 20px;
+}
+
+.home_title {
+    color: #eee;
+    font-size: 50px;
+    letter-spacing: 10px;
+}
+
+.qQuestion {
+    font-size: 16px;
+    line-height: 200%;
+    font-weight: bold;
+    word-break: break-word;
+    padding: 0.5rem 0.4rem;
+    margin-top: 10px;
+}
+
+.qResponseMessage {
+    font-size: 16px;
+    text-align: justify;
+    line-height: 200%;
+    font-weight: 400;
+    word-break: break-word;
+    padding: 0.5rem 0.4rem;
+    white-space: pre-line;
+}
+
+.source_title {
+    width: 400px;
+    float: left;
+    display: block;
+    text-align: left;
+    line-height: 23px;
+    font-size: 15px;
+}
+
+.source_citation {
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 200%;
+    padding: 0px 3px;
+    margin: 2px;
+    border: 1px solid black;
+    border-radius: 4px;
+    color: blue;
+}
+
+.source_audio {
+    float: right;
+}
+
+.previous_response {
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 150%;
+    font-weight: bold;
+    word-break: break-word;
+    padding: 0.3rem 0rem;
+}
+
+.previous_response:hover {
+    background-color: #ddd;
+}
+
+.chatPanel {
+    height: 100%;
+    position: relative;
+}
+
+.chatMessages {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 73%;
+}
+
+.chatHistory {
+    position: absolute;
+    height: 100%;
+    width: 25%;
+    padding: 1px;
+}
+
+.citation_pointer{
+    font-size: 11px;
+    font-weight: bold;
+    vertical-align: super;
+    line-height: 200%;
+    padding: 0px 3px;
+    margin: 2px;
+    border: 1px solid black;
+    border-radius: 4px;
+    color: blue;
+}
+
+.source_snippet{
+    white-space: pre-line;
+}

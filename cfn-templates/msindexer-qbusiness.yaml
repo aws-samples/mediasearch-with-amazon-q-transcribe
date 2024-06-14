@@ -1,0 +1,889 @@
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+#
+Description: |
+  MediaSearch Solution - Indexer stack (v0.3.4)
+Resources:
+  QBusinessMediaSearchServiceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AmazonQApplicationPermission
+            Effect: Allow
+            Principal:
+              Service: qbusiness.amazonaws.com
+            Action: sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Sid: AmazonQApplicationPutMetricDataPermission
+                Effect: Allow
+                Action:
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: AWS/QBusiness
+              - Sid: AmazonQApplicationDescribeLogGroupsPermission
+                Effect: Allow
+                Action:
+                  - logs:DescribeLogGroups
+                Resource: '*'
+              - Sid: AmazonQApplicationCreateLogGroupPermission
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/qbusiness/*
+              - Sid: AmazonQApplicationLogStreamPermission
+                Effect: Allow
+                Action:
+                  - logs:DescribeLogStreams
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource:
+                  - !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/qbusiness/*:log-stream:*
+
+  QBusinessApplicationIAMRole:
+    Type: AWS::IAM::Role
+    #Suppress W11: IAM role should not allow * resource on its permissions policy
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - qbusiness:CreateApplication
+                  - qbusiness:CreateRetriever
+                  - qbusiness:ListRetrievers
+                  - qbusiness:DeleteRetriever
+                  - qbusiness:CreateIndex
+                  - qbusiness:GetIndex
+                  - qbusiness:UpdateIndex
+                  - qbusiness:DeleteIndex
+                  - qbusiness:DeleteApplication
+                  - qbusiness:ListDataSources
+                  - qbusiness:GetDataSource
+                  - qbusiness:CreateDataSource
+                  - qbusiness:DeleteDataSource
+                  - qbusiness:StartDataSourceSyncJob
+                  - qbusiness:StopDataSourceSyncJob                  
+                Resource: '*'
+              - Effect: Allow
+                Action: iam:PassRole
+                Resource: !GetAtt QBusinessMediaSearchServiceRole.Arn
+
+
+  QBusinessWebExperienceRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement: 
+        - Sid: "QBusinessTrustPolicy"
+          Effect: "Allow"
+          Principal: 
+            Service: "application.qbusiness.amazonaws.com"
+          Action: 
+          - "sts:AssumeRole"
+          - "sts:SetContext"
+          Condition: 
+            StringEquals: 
+              aws:SourceAccount: !Ref AWS::AccountId
+            ArnEquals: 
+              aws:SourceArn: !GetAtt QBusinessApplication.ApplicationArn
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+            - Sid: QBusinessConversationPermission
+              Effect: Allow
+              Action:
+              - qbusiness:Chat
+              - qbusiness:ChatSync
+              - qbusiness:ListMessages
+              - qbusiness:ListConversations
+              - qbusiness:DeleteConversation
+              - qbusiness:PutFeedback
+              - qbusiness:GetWebExperience
+              - qbusiness:GetApplication
+              - qbusiness:ListPlugins
+              - qbusiness:GetChatControlsConfiguration
+              Resource: !GetAtt QBusinessApplication.ApplicationArn
+            - Sid: QBusinessQAppsPermissions
+              Effect: Allow
+              Action:
+              - qapps:CreateQApp
+              - qapps:PredictProblemStatementFromConversation
+              - qapps:PredictQAppFromProblemStatement
+              - qapps:CopyQApp
+              - qapps:GetQApp
+              - qapps:ListQApps
+              - qapps:UpdateQApp
+              - qapps:DeleteQApp
+              - qapps:AssociateQAppWithUser
+              - qapps:DisassociateQAppFromUser
+              - qapps:ImportDocumentToQApp
+              - qapps:ImportDocumentToQAppSession
+              - qapps:CreateLibraryItem
+              - qapps:GetLibraryItem
+              - qapps:UpdateLibraryItem
+              - qapps:CreateLibraryItemReview
+              - qapps:ListLibraryItems
+              - qapps:CreateSubscriptionToken
+              - qapps:StartQAppSession
+              - qapps:StopQAppSession
+              Resource: !GetAtt QBusinessApplication.ApplicationArn
+  QBusinessApplication:
+    Type: AWS::QBusiness::Application
+    Properties:
+      AttachmentsConfiguration:
+        AttachmentsControlMode: ENABLED
+      Description: Q Business Application using CFN
+      DisplayName: MediaSearchQBusiness
+      IdentityCenterInstanceArn: !Ref IdentityCenterInstanceArn
+      RoleArn: !GetAtt QBusinessMediaSearchServiceRole.Arn
+  MediaQBusinessNativeIndex:
+    Condition: RetrieverTypeNative
+    Type: AWS::QBusiness::Index
+    Properties:
+      Description: MediaQBusinessNativeIndex
+      DisplayName: MediaQBusinessNativeIndex
+      ApplicationId: !Ref QBusinessApplication
+      Type: STARTER      
+  MediaQBusinessDatasource:
+    Type: AWS::QBusiness::DataSource
+    Properties:
+      ApplicationId: !Ref QBusinessApplication
+      Configuration:
+        type: CUSTOM
+        version: 1.0.0
+      Description: MediaQBusinessDatasource
+      DisplayName: MediaQBusinessDatasource
+      #IndexId: !GetAtt MediaQBusinessNativeIndex.IndexId
+      IndexId: !If [RetrieverTypeKendra, !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId], !GetAtt MediaQBusinessNativeIndex.IndexId ]
+      RoleArn: !GetAtt QBusinessMediaSearchServiceRole.Arn
+  QBusinessRetriever:
+    Type: AWS::QBusiness::Retriever
+    Properties:
+      Configuration: !If
+            - RetrieverTypeKendra
+            - {"KendraIndexConfiguration": {"IndexId": !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId] }} 
+            - {"NativeIndexConfiguration": {"IndexId": !GetAtt MediaQBusinessNativeIndex.IndexId}}
+      DisplayName: QBusinessRetrieverNative
+      ApplicationId: !Ref QBusinessApplication
+      RoleArn: !GetAtt QBusinessApplicationIAMRole.Arn
+      Type: NATIVE_INDEX
+  QBusinessWebExperience:
+    Type: AWS::QBusiness::WebExperience
+    Properties:
+      ApplicationId: !Ref QBusinessApplication
+      SamplePromptsControlMode: ENABLED
+      RoleArn: !GetAtt QBusinessWebExperienceRole.Arn
+      WelcomeMessage: "Welcome to Mediasearch Q Business"
+      Title: "Mediasearch Q Business"
+  YTMediaBucket:
+    Type: AWS::S3::Bucket
+    Description: Create a bucket to hold downloaded YouTube videos
+  YTMediaDDBQueueTable:
+    Type: AWS::DynamoDB::Table
+    # Suppress rule W78: DynamoDB table should have backup enabled, should be set using PointInTimeRecoveryEnabled
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W78
+            reason: "DynamoDB table should have backup enabled, should be set using PointInTimeRecoveryEnabled"                
+    Properties:
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ytkey
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ytkey
+          KeyType: HASH
+  YTIndexerLambdaIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                  - s3:DeleteObject
+                Resource:
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref YTMediaBucket
+                      - /*
+                  - !Join
+                    - ''
+                    - - 'arn:aws:s3:::'
+                      - !Ref YTMediaBucket
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: arn:aws:logs:*:*:*
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+                Resource: !GetAtt YTMediaDDBQueueTable.Arn
+  YTDLPLambdalayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content: ../layers/yt_dlp
+      CompatibleRuntimes:
+        - python3.12
+      Description: Layer with yt_dlp package required to download YT Videos
+      LicenseInfo: MIT
+  FFMPEGLambdalayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      Content: ../layers/ffmpeg
+      CompatibleRuntimes:
+        - python3.12
+      Description: Layer with ffmpeg package required to support yt_dlp functions on Lambda
+      LicenseInfo: MIT
+  YouTubeVideoIndexer:
+    Type: AWS::Lambda::Function
+    #Suppress W92: Lambda functions should define ReservedConcurrentExecutions to reserve simultaneous executions
+    #Suppress W89: Lambda functions should be deployed inside a VPC
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W92
+          - id: W89    
+    Properties:
+      Layers:
+        - !Ref YTDLPLambdalayer
+        - !Ref FFMPEGLambdalayer
+      Code: ../lambda/ytindexer
+      Handler: index.lambda_handler
+      Role: !GetAtt YTIndexerLambdaIAMRole.Arn
+      Runtime: python3.12
+      Timeout: 600
+      MemorySize: 1024
+      Environment:
+        Variables:
+          playListURL: !Ref PlayListURL
+          numberOfYTVideos: !If
+            - IndexYTVideosYN
+            - 0
+            - !Ref NumberOfYTVideos
+          LOG_LEVEL: INFO
+          ddbTableName: !Ref YTMediaDDBQueueTable
+          mediaBucket: !Ref YTMediaBucket
+          mediaFolderPrefix: !Ref MediaFolderPrefix
+          metaDataFolderPrefix: !Ref MetadataFolderPrefix
+          RETRY: 10
+  KendraIndexRole:
+    Condition: RetrieverTypeKendra
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: kendra.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Resource: '*'
+                Condition:
+                  StringEquals:
+                    cloudwatch:namespace: Kendra
+                Action:
+                  - cloudwatch:PutMetricData
+              - Effect: Allow
+                Resource: '*'
+                Action: logs:DescribeLogGroups
+              - Effect: Allow
+                Resource: !Sub
+                  - arn:aws:logs:${region}:${account}:log-group:/aws/kendra/*
+                  - region: !Ref AWS::Region
+                    account: !Ref AWS::AccountId
+                Action: logs:CreateLogGroup
+              - Effect: Allow
+                Resource: !Sub
+                  - arn:aws:logs:${region}:${account}:log-group:/aws/kendra/*:log-stream:*
+                  - region: !Ref AWS::Region
+                    account: !Ref AWS::AccountId
+                Action:
+                  - logs:DescribeLogStreams
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+          PolicyName: KendraMediaIndexPolicy
+  MediaKendraIndex:
+    Condition: CreateIndex
+    Type: AWS::Kendra::Index
+    DependsOn:
+      - YouTubeVideoIndexer
+      - CallYouTubeVideoIndexer
+    Properties:
+      Edition: DEVELOPER_EDITION
+      Name: !Join
+        - ''
+        - - !Ref AWS::StackName
+          - '-Index'
+      RoleArn: !GetAtt KendraIndexRole.Arn
+  KendraMediaDSOwn:
+    Condition: OwnIndex
+    Type: AWS::Kendra::DataSource
+    Properties:
+      IndexId: !Ref ExistingIndexId
+      Name: !Join
+        - ''
+        - - !Ref AWS::StackName
+          - '-DS'
+      Type: CUSTOM
+  KendraMediaDS:
+    Condition: CreateIndex
+    Type: AWS::Kendra::DataSource
+    Properties:
+      IndexId: !GetAtt MediaKendraIndex.Id
+      Name: !Join
+        - ''
+        - - !Ref AWS::StackName
+          - '-DS'
+      Type: CUSTOM
+  MediaDynamoTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+  TranscribeDataAccessRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: transcribe.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - !If
+                - NonEmptyBucket
+                - Effect: Allow
+                  Resource:
+                    - !Sub arn:aws:s3:::${MediaBucket}/*
+                    - !Sub arn:aws:s3:::${MediaBucket}
+                  Action:
+                    - s3:GetObject
+                    - s3:ListBucket
+                - !Ref AWS::NoValue
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                Resource: !Sub
+                  - arn:aws:s3:::${bucket}*
+                  - bucket: !Ref YTMediaBucket
+          PolicyName: TranscribeDataAccessPolicy
+  CrawlerLambdaRole:
+    Type: AWS::IAM::Role
+    #Suppress W11: IAM role should not allow * resource on its permissions policy
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W11
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - !If
+                - RetrieverTypeKendra
+                - Effect: Allow
+                  Resource: !Sub
+                    - arn:aws:kendra:${region}:${account}:index/${index}*
+                    - region: !Ref AWS::Region
+                      account: !Ref AWS::AccountId
+                      index: !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId]
+                  Action:
+                    - kendra:StopDataSourceSyncJob
+                    - kendra:UpdateIndex
+                    - kendra:StartDataSourceSyncJob
+                    - kendra:ListDataSourceSyncJobs
+                    - kendra:BatchDeleteDocument
+                - Effect: Allow
+                  Resource:
+                    - !Sub "arn:aws:qbusiness:${AWS::Region}:${AWS::AccountId}:application/${QBusinessApplication}"
+                    - !Sub "arn:aws:qbusiness:${AWS::Region}:${AWS::AccountId}:application/${QBusinessApplication}/*"
+                  Action:
+                    - qbusiness:ListDataSourceSyncJobs
+                    - qbusiness:BatchDeleteDocument
+                    - qbusiness:StopDataSourceSyncJob
+                    - qbusiness:UpdateIndex
+                    - qbusiness:StartDataSourceSyncJob
+              - !If
+                - NonEmptyBucket
+                - Effect: Allow
+                  Resource:
+                    - !Sub arn:aws:s3:::${MediaBucket}/*
+                    - !Sub arn:aws:s3:::${MediaBucket}
+                  Action:
+                    - s3:GetObject
+                    - s3:ListBucket
+                    - s3:GetBucketLocation
+                - !Ref AWS::NoValue
+              - Effect: Allow
+                Resource: !Sub
+                  - arn:aws:s3:::${bucket}*
+                  - bucket: !Ref YTMediaBucket
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+              - Effect: Allow
+                Resource: !GetAtt MediaDynamoTable.Arn
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - transcribe:GetTranscriptionJob
+                  - transcribe:ListTranscriptionJobs
+                  - transcribe:StartTranscriptionJob
+              - Effect: Allow
+                Resource: !GetAtt TranscribeDataAccessRole.Arn
+                Action:
+                  - iam:PassRole
+              - Effect: Allow
+                Resource: !GetAtt S3JobCompletionLambdaFunction.Arn
+                Action:
+                  - lambda:InvokeFunction
+          PolicyName: CrawlerLambdaPolicy
+  S3CrawlLambdaFunction:
+    Type: AWS::Lambda::Function
+    #Suppress W92: Lambda functions should define ReservedConcurrentExecutions to reserve simultaneous executions
+    #Suppress W89: Lambda functions should be deployed inside a VPC
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W92
+          - id: W89
+    Properties:
+      Handler: crawler.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt CrawlerLambdaRole.Arn
+      Timeout: 900
+      MemorySize: 1024
+      Code: ../lambda/indexer
+      Environment:
+        Variables:
+          MEDIA_BUCKET: !Ref MediaBucket
+          YTMEDIA_BUCKET: !Ref YTMediaBucket
+          MEDIA_FOLDER_PREFIX: !Ref MediaFolderPrefix
+          METADATA_FOLDER_PREFIX: !Ref MetadataFolderPrefix
+          INDEX_YOUTUBE_VIDEOS: !If
+            - IndexYTVideosYN
+            - 'false'
+            - 'true'
+          TRANSCRIBEOPTS_FOLDER_PREFIX: !Ref OptionsFolderPrefix
+          MEDIA_FILE_TABLE: !Ref MediaDynamoTable
+          INDEX_ID: !If
+            - RetrieverTypeKendra
+            - !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId ]
+            - !GetAtt MediaQBusinessNativeIndex.IndexId
+          DS_ID: !If
+            - RetrieverTypeKendra
+            - !If [CreateIndex, !GetAtt KendraMediaDS.Id, !GetAtt KendraMediaDSOwn.Id]
+            - !GetAtt MediaQBusinessDatasource.DataSourceId
+          STACK_NAME: !Ref AWS::StackName
+          TRANSCRIBE_ROLE: !GetAtt TranscribeDataAccessRole.Arn
+          JOBCOMPLETE_FUNCTION: !Ref S3JobCompletionLambdaFunction
+          AMAZONQ_RETRIEVER_TYPE: !Ref RetrieverType
+          AMAZONQ_APPLICATION_ID: !Ref QBusinessApplication
+          AWS_DATA_PATH: /opt/model
+  JobCompleteLambdaRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - !If
+                - RetrieverTypeKendra
+                - Effect: Allow
+                  Resource: !Sub
+                    - arn:aws:kendra:${region}:${account}:index/${index}*
+                    - region: !Ref AWS::Region
+                      account: !Ref AWS::AccountId
+                      index: !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId]
+                  Action:
+                    - kendra:StopDataSourceSyncJob
+                    - kendra:UpdateIndex
+                    - kendra:StartDataSourceSyncJob
+                    - kendra:ListDataSourceSyncJobs
+                    - kendra:BatchDeleteDocument
+                    - kendra:BatchPutDocument
+                - Effect: Allow
+                  Resource: 
+                    - !Sub "arn:aws:qbusiness:${AWS::Region}:${AWS::AccountId}:application/${QBusinessApplication}"
+                    - !Sub "arn:aws:qbusiness:${AWS::Region}:${AWS::AccountId}:application/${QBusinessApplication}/*"
+                  Action:
+                    - qbusiness:ListDataSourceSyncJobs
+                    - qbusiness:BatchDeleteDocument
+                    - qbusiness:StopDataSourceSyncJob
+                    - qbusiness:UpdateIndex
+                    - qbusiness:StartDataSourceSyncJob
+                    - qbusiness:BatchPutDocument
+              - !If
+                - NonEmptyBucket
+                - Effect: Allow
+                  Resource:
+                    - !Sub arn:aws:s3:::${MediaBucket}/*
+                    - !Sub arn:aws:s3:::${MediaBucket}
+                  Action:
+                    - s3:GetObject
+                    - s3:ListBucket
+                    - s3:GetBucketLocation
+                - !Ref AWS::NoValue
+              - Effect: Allow
+                Resource: !Sub
+                  - arn:aws:s3:::${bucket}*
+                  - bucket: !Ref YTMediaBucket
+                Action:
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:GetBucketLocation
+              - Effect: Allow
+                Resource: !GetAtt MediaDynamoTable.Arn
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:Scan
+                  - dynamodb:GetItem
+              - Effect: Allow
+                Resource: '*'
+                Action:
+                  - transcribe:GetTranscriptionJob
+                  - transcribe:ListTranscriptionJobs
+                  - transcribe:StartTranscriptionJob
+          PolicyName: JobCompleteLambdaPolicy
+  S3JobCompletionLambdaFunction:
+    Type: AWS::Lambda::Function
+    #Suppress W92: Lambda functions should define ReservedConcurrentExecutions to reserve simultaneous executions
+    #Suppress W89: Lambda functions should be deployed inside a VPC
+    Metadata:
+      cfn_nag:
+        rules_to_suppress:
+          - id: W92
+          - id: W89
+    Properties:
+      Handler: jobcomplete.lambda_handler
+      Runtime: python3.12
+      Role: !GetAtt JobCompleteLambdaRole.Arn
+      Timeout: 300
+      MemorySize: 1024
+      Code: ../lambda/indexer
+      Environment:
+        Variables:
+          INDEX_ID: !If
+            - RetrieverTypeKendra
+            - !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId ]
+            - !GetAtt MediaQBusinessNativeIndex.IndexId
+          DS_ID: !If
+            - RetrieverTypeKendra
+            - !If [CreateIndex, !GetAtt KendraMediaDS.Id, !GetAtt KendraMediaDSOwn.Id]
+            - !GetAtt MediaQBusinessDatasource.DataSourceId
+          MEDIA_FILE_TABLE: !Ref MediaDynamoTable
+          STACK_NAME: !Ref AWS::StackName
+          AMAZONQ_RETRIEVER_TYPE: !Ref RetrieverType
+          AMAZONQ_APPLICATION_ID: !Ref QBusinessApplication
+          AWS_DATA_PATH: /opt/model
+  TrancriptionJobCompleteEvent:
+    Type: AWS::Events::Rule
+    Properties:
+      EventPattern:
+        source:
+          - aws.transcribe
+        detail-type:
+          - Transcribe Job State Change
+        detail:
+          TranscriptionJobStatus:
+            - COMPLETED
+            - FAILED
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt S3JobCompletionLambdaFunction.Arn
+          Id: !Ref S3JobCompletionLambdaFunction
+  JobCompleteLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt S3JobCompletionLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt TrancriptionJobCompleteEvent.Arn
+  DSSyncStartSchedule:
+    Type: AWS::Events::Rule
+    Properties:
+      ScheduleExpression: !Join
+        - ''
+        - - rate(
+          - !Ref SyncSchedule
+          - )
+      State: ENABLED
+      Targets:
+        - Arn: !GetAtt S3CrawlLambdaFunction.Arn
+          Id: !Ref S3CrawlLambdaFunction
+  SyncScheduleLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt S3CrawlLambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn: !GetAtt DSSyncStartSchedule.Arn
+  StartCrawler:
+    Type: Custom::CustomResource
+    DependsOn:
+      - YouTubeVideoIndexer
+      - CallYouTubeVideoIndexer
+      - S3CrawlLambdaFunction
+      - S3JobCompletionLambdaFunction
+      - TrancriptionJobCompleteEvent
+    Properties:
+      ServiceToken: !GetAtt S3CrawlLambdaFunction.Arn
+      TriggerDependencies:
+        - !Ref ExistingIndexId
+        - !Ref MediaBucket
+        - !Ref MediaFolderPrefix
+        - !Ref MetadataFolderPrefix
+        - !Ref OptionsFolderPrefix
+        - !Ref S3CrawlLambdaFunction
+        - !Ref S3JobCompletionLambdaFunction
+        - !Ref PlayListURL
+        - !Ref NumberOfYTVideos
+        - !Ref YouTubeVideoIndexer
+  CallYouTubeVideoIndexer:
+    Type: AWS::CloudFormation::CustomResource
+    Properties:
+      ServiceToken: !GetAtt YouTubeVideoIndexer.Arn
+      TriggerDependencies:
+        - !Ref ExistingIndexId
+        - !Ref MediaBucket
+        - !Ref PlayListURL
+        - !Ref NumberOfYTVideos
+        - !Ref YouTubeVideoIndexer
+Parameters:
+  RetrieverType:
+    Type: String
+    Default: Native
+    AllowedValues:
+      - Native
+      - Kendra
+  MediaBucket:
+    Type: String
+    Default: <SAMPLES_BUCKET>
+    Description: S3 bucket name containing media files in the region where you are deploying (<REGION>)
+  MediaFolderPrefix:
+    Type: String
+    Default: <SAMPLES_PREFIX>
+    Description: Prefix for media folder in the media bucket ( e.g. path/to/files/ )
+  MetadataFolderPrefix:
+    Type: String
+    Default: <METADATA_PREFIX>
+    Description: '(Optional) Metadata files prefix folder location ( e.g. metadata/ ). If a media file is stored at s3://bucket/path/to/files/file2.mp3, and the metadata prefix folder location is metadata/, the metadata file location is s3://bucket/metadata/path/to/files/file2.mp3.metadata.json. By default, there is no metadata file prefix folder, and metadata files are stored in the same folder as the media files. See: See https://github.com/aws-samples/aws-kendra-transcribe-media-search/blob/main/README.md#add-kendra-metadata'
+  OptionsFolderPrefix:
+    Type: String
+    Default: <OPTIONS_PREFIX>
+    Description: (Optional) Transcribe options files prefix folder location ( e.g. transcribeopts/ ). If a media file is stored at s3://bucket/path/to/files/file2.mp3, and the options prefix folder location is transcribeopts/, the metadata file location is s3://bucket/transcribeopts/path/to/files/file2.mp3.transcribeopts.json. By default, there is no options file prefix folder, and Transcribe options files are stored in the same folder as the media files. See https://github.com/aws-samples/aws-kendra-transcribe-media-search/blob/main/README.md#add-transcribe-options
+  SyncSchedule:
+    Type: String
+    Default: 24 hours
+    AllowedValues:
+      - 2 hours
+      - 6 hours
+      - 12 hours
+      - 24 hours
+      - 48 hours
+      - 72 hours
+    Description: Frequency to synchronize the S3 bucket with the Kendra index. The default is 24 hours
+  ExistingIndexId:
+    Default: ''
+    Type: String
+    Description: Leave this empty to create a new index or provide the index *id* (not name) of the existing Kendra index to be used
+  PlayListURL:
+    Type: String
+    Description: Enter the YouTube playlist URL. Defaulted to This is my Architecture PlayList on Youtube
+    Default: https://www.youtube.com/playlist?list=PLhr1KZpdzukdeX8mQ2qO73bg6UKQHYsHb
+  NumberOfYTVideos:
+    Type: Number
+    Default: 5
+    Description: Enter the number of youtube videos to download. Defaulted to 5
+  IdentityCenterInstanceArn:
+    Type: String
+    Description: Enter the Amazon Resource Name (ARN) of the Identity Center instance.
+    AllowedPattern: ^arn:(?:[a-z0-9]+:){0,1}(?:[a-z0-9-]+:){0,1}aws:.*$
+    ConstraintDescription: Must be a valid Amazon Resource Name (ARN)
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Identity Centre ARN and Retriever selection 
+        Parameters:
+          - IdentityCenterInstanceArn
+          - RetrieverType
+      - Label:
+          default: MediaSearch Indexer parameters
+        Parameters:
+          - ExistingIndexId
+          - MediaBucket
+          - MediaFolderPrefix
+          - SyncSchedule
+      - Label:
+          default: Index Metadata and Transcribe options parameters
+        Parameters:
+          - MetadataFolderPrefix
+          - OptionsFolderPrefix
+      - Label:
+          default: Index YouTube Videos
+        Parameters:
+          - PlayListURL
+          - NumberOfYTVideos
+Conditions:
+  RetrieverTypeKendra: !Equals
+    - !Ref RetrieverType
+    - 'Kendra'
+  RetrieverTypeNative: !Equals
+    - !Ref RetrieverType
+    - 'Native'
+  BlankExistingIndexId: !Equals
+    - !Ref ExistingIndexId
+    - ''
+  
+  BlankPlayList: !Equals
+    - !Ref PlayListURL
+    - ''
+  ZeroYTDownload: !Equals
+    - !Ref NumberOfYTVideos
+    - 0
+  IndexYTVideosYN: !Or
+    - !Condition BlankPlayList
+    - !Condition ZeroYTDownload
+  CreateIndex: !And
+    - !Condition BlankExistingIndexId
+    - !Condition RetrieverTypeKendra
+  OwnIndex: !And
+    - !Not [!Equals [!Ref ExistingIndexId, '']]
+    - !Equals [!Ref RetrieverType, Kendra]
+  NonEmptyBucket: !Not
+    - !Equals
+      - !Ref MediaBucket
+      - ''
+Outputs:
+  IdentityCenterInstanceArn:
+    Description: ARN for Identity Center
+    Value: !Ref IdentityCenterInstanceArn
+  KendraIndexId:
+    Description: Kendra index ID. Relevant only if using Amazon Q Kendra Retriever
+    Value: !If
+      - CreateIndex
+      - !GetAtt MediaKendraIndex.Id
+      - !Ref ExistingIndexId
+  MediaBucketsUsed:
+    Description: S3 buckets used by the Indexer. To be copied in to Finder stack while deploying
+    Value: !If
+      - NonEmptyBucket
+      - !Join
+        - ','
+        - - !Ref MediaBucket
+          - !Ref YTMediaBucket
+      - !Ref YTMediaBucket
+  YouTubeMediaBucketUsed:
+    Description: S3 buckets used for Indexing YouTube Videos
+    Value: !Ref YTMediaBucket
+  QBusinessApplication:
+    Description: Link to QBusiness Application
+    Value: !Join
+      - ''
+      - - https://console.aws.amazon.com/amazonq/business/applications/
+        - !Ref QBusinessApplication
+        - /details
+  QBusinessApplicationId:
+    Description: QBusiness Application Id created by the Indexer
+    Value: !Ref QBusinessApplication

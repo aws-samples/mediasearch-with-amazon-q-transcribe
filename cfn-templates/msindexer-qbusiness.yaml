@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT-0
 #
 Description: |
-  MediaSearch Solution - Indexer stack (v0.3.4)
+  MediaSearch Q Business Solution - Indexer stack (v0.1.1)
 Resources:
   QBusinessMediaSearchServiceRole:
     Type: AWS::IAM::Role
@@ -170,7 +170,7 @@ Resources:
       AttachmentsConfiguration:
         AttachmentsControlMode: ENABLED
       Description: Q Business Application using CFN
-      DisplayName: MediaSearchQBusiness
+      DisplayName: !Sub MediaSearchQBusiness-${AWS::StackName}
       IdentityCenterInstanceArn: !Ref IdentityCenterInstanceArn
       RoleArn: !GetAtt QBusinessMediaSearchServiceRole.Arn
   MediaQBusinessNativeIndex:
@@ -181,15 +181,15 @@ Resources:
       DisplayName: MediaQBusinessNativeIndex
       ApplicationId: !Ref QBusinessApplication
       Type: STARTER      
-  MediaQBusinessDatasource:
+  MediasearchQBusinessDatasource:
     Type: AWS::QBusiness::DataSource
     Properties:
       ApplicationId: !Ref QBusinessApplication
       Configuration:
         type: CUSTOM
         version: 1.0.0
-      Description: MediaQBusinessDatasource
-      DisplayName: MediaQBusinessDatasource
+      Description: MediasearchQBusinessDatasource
+      DisplayName: MediasearchQBusinessDatasource
       #IndexId: !GetAtt MediaQBusinessNativeIndex.IndexId
       IndexId: !If [RetrieverTypeKendra, !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId], !GetAtt MediaQBusinessNativeIndex.IndexId ]
       RoleArn: !GetAtt QBusinessMediaSearchServiceRole.Arn
@@ -874,9 +874,6 @@ Outputs:
         - - !Ref MediaBucket
           - !Ref YTMediaBucket
       - !Ref YTMediaBucket
-  YouTubeMediaBucketUsed:
-    Description: S3 buckets used for Indexing YouTube Videos
-    Value: !Ref YTMediaBucket
   QBusinessApplication:
     Description: Link to QBusiness Application
     Value: !Join

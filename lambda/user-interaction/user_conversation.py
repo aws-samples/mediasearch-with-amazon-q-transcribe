@@ -5,6 +5,10 @@ import os
 import boto3
 import datetime 
 import jwt
+import logging
+
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 AMAZONQ_APP_ID = os.environ["AMAZONQ_APP_ID"]
 AMAZONQ_REGION = os.environ["AMAZONQ_REGION"]
@@ -17,38 +21,37 @@ def serialize_datetime(obj):
     raise TypeError("Type not serializable") 
 
 
-def get_conversations(qbusiness_client,amazonq_userid , nextToken):
+def get_conversations(qbusiness_client,nextToken):
     input = {
         "applicationId": AMAZONQ_APP_ID,
     }
-
-    print("Amazon Q Input: ", input)
+    logger.info(f"Amazon Q Input: {json.dumps(input)}")
     try:
         resp = qbusiness_client.list_conversations(**input)
     except Exception as e:
-        print("Amazon Q Exception: ", e)
+        logger.info(f"Amazon Q Exception: {str(e)}")
         resp = {
             "systemMessage": "Amazon Q Error: " + str(e)
         }
-    print("Amazon Q Response: ", json.dumps(resp, default=serialize_datetime))
+    logger.info(f"Amazon Q Response: {json.dumps(resp, default=serialize_datetime)}")
     return resp
 
 
-def delete_conversation(qbusiness_client,amazonq_userid, conversation_id):
+def delete_conversation(qbusiness_client,conversation_id):
     input = {
         "applicationId": AMAZONQ_APP_ID,
         "conversationId": conversation_id
     }
 
-    print("Amazon Q Input: ", input)
+    logger.info(f"Amazon Q Input: {json.dumps(input)}")
     try:
         resp = qbusiness_client.delete_conversation(**input)
     except Exception as e:
-        print("Amazon Q Exception: ", e)
+        logger.info(f"Amazon Q Exception: {str(e)}")
         resp = {
             "systemMessage": "Amazon Q Error: " + str(e)
         }
-    print("Amazon Q Response: ", json.dumps(resp, default=serialize_datetime))
+    logger.info(f"Amazon Q Response: {json.dumps(resp, default=serialize_datetime)}")
     return resp
 
 
@@ -56,7 +59,7 @@ def get_qbusiness_client(idToken):
     identity_center_token_decoded = jwt.decode(idToken, options={"verify_signature": False})
     # Assume the role using the decoded identity context
     sts_client = boto3.client('sts')
-    print(identity_center_token_decoded['sts:identity_context'])
+    logger.info(identity_center_token_decoded['sts:identity_context'])
     assume_role_response = sts_client.assume_role(
         RoleArn=IAM_ROLE_ARN,
         RoleSessionName='identity-bearer-for-ms-user-conversation',
@@ -79,15 +82,15 @@ def get_qbusiness_client(idToken):
 
 def handler(event, context):
     request_body = json.loads(event["body"])
-    print(request_body)
+    logger.info(request_body)
     qbusiness_client=get_qbusiness_client(request_body['idToken'])
     if request_body['action'] == 'list':
-        amazonq_response = get_conversations(qbusiness_client,request_body['user_id'], request_body['nextToken'])
-        print(amazonq_response)
+        amazonq_response = get_conversations(qbusiness_client, request_body['nextToken'])
+        logger.info(amazonq_response)
 
     if request_body['action'] == 'delete':
-        amazonq_response = delete_conversation(qbusiness_client,request_body['user_id'], request_body['conversation_id'])
-        print(amazonq_response)
+        amazonq_response = delete_conversation(qbusiness_client,request_body['conversation_id'])
+        logger.info(amazonq_response)
 
     response = {
         'statusCode': 200,

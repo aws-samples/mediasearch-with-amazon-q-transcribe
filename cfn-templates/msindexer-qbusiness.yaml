@@ -191,14 +191,14 @@ Resources:
       Description: MediaQBusinessDatasource
       DisplayName: MediaQBusinessDatasource
       #IndexId: !GetAtt MediaQBusinessNativeIndex.IndexId
-      IndexId: !If [RetrieverTypeKendra, !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId], !GetAtt MediaQBusinessNativeIndex.IndexId ]
+      IndexId: !If [RetrieverTypeKendra, !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId], !GetAtt MediaQBusinessNativeIndex.IndexId ]
       RoleArn: !GetAtt QBusinessMediaSearchServiceRole.Arn
   QBusinessRetriever:
     Type: AWS::QBusiness::Retriever
     Properties:
       Configuration: !If
             - RetrieverTypeKendra
-            - {"KendraIndexConfiguration": {"IndexId": !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId] }} 
+            - {"KendraIndexConfiguration": {"IndexId": !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId] }} 
             - {"NativeIndexConfiguration": {"IndexId": !GetAtt MediaQBusinessNativeIndex.IndexId}}
       DisplayName: QBusinessRetrieverNative
       ApplicationId: !Ref QBusinessApplication
@@ -370,7 +370,7 @@ Resources:
                   - logs:PutLogEvents
           PolicyName: KendraMediaIndexPolicy
   MediaKendraIndex:
-    Condition: CreateIndex
+    Condition: CreateKendraIndex
     Type: AWS::Kendra::Index
     DependsOn:
       - YouTubeVideoIndexer
@@ -386,14 +386,14 @@ Resources:
     Condition: OwnIndex
     Type: AWS::Kendra::DataSource
     Properties:
-      IndexId: !Ref ExistingIndexId
+      IndexId: !Ref ExistingKendraIndexId
       Name: !Join
         - ''
         - - !Ref AWS::StackName
           - '-DS'
       Type: CUSTOM
   KendraMediaDS:
-    Condition: CreateIndex
+    Condition: CreateKendraIndex
     Type: AWS::Kendra::DataSource
     Properties:
       IndexId: !GetAtt MediaKendraIndex.Id
@@ -472,7 +472,7 @@ Resources:
                     - arn:aws:kendra:${region}:${account}:index/${index}*
                     - region: !Ref AWS::Region
                       account: !Ref AWS::AccountId
-                      index: !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId]
+                      index: !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId]
                   Action:
                     - kendra:StopDataSourceSyncJob
                     - kendra:UpdateIndex
@@ -559,11 +559,11 @@ Resources:
           MEDIA_FILE_TABLE: !Ref MediaDynamoTable
           INDEX_ID: !If
             - RetrieverTypeKendra
-            - !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId ]
+            - !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId ]
             - !GetAtt MediaQBusinessNativeIndex.IndexId
           DS_ID: !If
             - RetrieverTypeKendra
-            - !If [CreateIndex, !GetAtt KendraMediaDS.Id, !GetAtt KendraMediaDSOwn.Id]
+            - !If [CreateKendraIndex, !GetAtt KendraMediaDS.Id, !GetAtt KendraMediaDSOwn.Id]
             - !GetAtt MediaQBusinessDatasource.DataSourceId
           STACK_NAME: !Ref AWS::StackName
           TRANSCRIBE_ROLE: !GetAtt TranscribeDataAccessRole.Arn
@@ -594,7 +594,7 @@ Resources:
                     - arn:aws:kendra:${region}:${account}:index/${index}*
                     - region: !Ref AWS::Region
                       account: !Ref AWS::AccountId
-                      index: !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId]
+                      index: !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId]
                   Action:
                     - kendra:StopDataSourceSyncJob
                     - kendra:UpdateIndex
@@ -665,11 +665,11 @@ Resources:
         Variables:
           INDEX_ID: !If
             - RetrieverTypeKendra
-            - !If [CreateIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingIndexId ]
+            - !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId ]
             - !GetAtt MediaQBusinessNativeIndex.IndexId
           DS_ID: !If
             - RetrieverTypeKendra
-            - !If [CreateIndex, !GetAtt KendraMediaDS.Id, !GetAtt KendraMediaDSOwn.Id]
+            - !If [CreateKendraIndex, !GetAtt KendraMediaDS.Id, !GetAtt KendraMediaDSOwn.Id]
             - !GetAtt MediaQBusinessDatasource.DataSourceId
           MEDIA_FILE_TABLE: !Ref MediaDynamoTable
           STACK_NAME: !Ref AWS::StackName
@@ -729,7 +729,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt S3CrawlLambdaFunction.Arn
       TriggerDependencies:
-        - !Ref ExistingIndexId
+        - !Ref ExistingKendraIndexId
         - !Ref MediaBucket
         - !Ref MediaFolderPrefix
         - !Ref MetadataFolderPrefix
@@ -744,7 +744,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt YouTubeVideoIndexer.Arn
       TriggerDependencies:
-        - !Ref ExistingIndexId
+        - !Ref ExistingKendraIndexId
         - !Ref MediaBucket
         - !Ref PlayListURL
         - !Ref NumberOfYTVideos
@@ -783,7 +783,7 @@ Parameters:
       - 48 hours
       - 72 hours
     Description: Frequency to synchronize the S3 bucket with the Kendra index. The default is 24 hours
-  ExistingIndexId:
+  ExistingKendraIndexId:
     Default: ''
     Type: String
     Description: Leave this empty to create a new index or provide the index *id* (not name) of the existing Kendra index to be used
@@ -811,7 +811,7 @@ Metadata:
       - Label:
           default: MediaSearch Indexer parameters
         Parameters:
-          - ExistingIndexId
+          - ExistingKendraIndexId
           - MediaBucket
           - MediaFolderPrefix
           - SyncSchedule
@@ -832,8 +832,8 @@ Conditions:
   RetrieverTypeNative: !Equals
     - !Ref RetrieverType
     - 'Native'
-  BlankExistingIndexId: !Equals
-    - !Ref ExistingIndexId
+  BlankExistingKendraIndexId: !Equals
+    - !Ref ExistingKendraIndexId
     - ''
   
   BlankPlayList: !Equals
@@ -845,11 +845,11 @@ Conditions:
   IndexYTVideosYN: !Or
     - !Condition BlankPlayList
     - !Condition ZeroYTDownload
-  CreateIndex: !And
-    - !Condition BlankExistingIndexId
+  CreateKendraIndex: !And
+    - !Condition BlankExistingKendraIndexId
     - !Condition RetrieverTypeKendra
   OwnIndex: !And
-    - !Not [!Equals [!Ref ExistingIndexId, '']]
+    - !Not [!Equals [!Ref ExistingKendraIndexId, '']]
     - !Equals [!Ref RetrieverType, Kendra]
   NonEmptyBucket: !Not
     - !Equals
@@ -862,9 +862,9 @@ Outputs:
   KendraIndexId:
     Description: Kendra index ID. Relevant only if using Amazon Q Kendra Retriever
     Value: !If
-      - CreateIndex
+      - CreateKendraIndex
       - !GetAtt MediaKendraIndex.Id
-      - !Ref ExistingIndexId
+      - !Ref ExistingKendraIndexId
   MediaBucketsUsed:
     Description: S3 buckets used by the Indexer. To be copied in to Finder stack while deploying
     Value: !If

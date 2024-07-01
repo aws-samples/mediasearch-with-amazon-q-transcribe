@@ -564,7 +564,7 @@ Resources:
           DS_ID: !If
             - RetrieverTypeKendra
             - !If [CreateKendraIndex, !GetAtt KendraMediaDS.Id, !GetAtt KendraMediaDSOwn.Id]
-            - !GetAtt MediaQBusinessDatasource.DataSourceId
+            - !GetAtt MediasearchQBusinessDatasource.DataSourceId
           STACK_NAME: !Ref AWS::StackName
           TRANSCRIBE_ROLE: !GetAtt TranscribeDataAccessRole.Arn
           JOBCOMPLETE_FUNCTION: !Ref S3JobCompletionLambdaFunction
@@ -670,7 +670,7 @@ Resources:
           DS_ID: !If
             - RetrieverTypeKendra
             - !If [CreateKendraIndex, !GetAtt KendraMediaDS.Id, !GetAtt KendraMediaDSOwn.Id]
-            - !GetAtt MediaQBusinessDatasource.DataSourceId
+            - !GetAtt MediasearchQBusinessDatasource.DataSourceId
           MEDIA_FILE_TABLE: !Ref MediaDynamoTable
           STACK_NAME: !Ref AWS::StackName
           AMAZONQ_RETRIEVER_TYPE: !Ref RetrieverType

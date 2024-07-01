@@ -151,7 +151,7 @@ const ChatMessages = ({ data }) => {
                                     triggerType="text"
                                     content={source.snippet}
                                 >
-                                    {(source.snippet.length > 20 ? source.snippet.substring(0, 150) + "..." : source.snippet)}
+                                    {(source.snippet.length > 20 ? source.snippet.substring(0, 250) + "..." : source.snippet)}
                                 </Popover>
                             </SpaceBetween>
 

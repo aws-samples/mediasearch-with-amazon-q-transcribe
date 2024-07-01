@@ -623,7 +623,7 @@ Resources:
         Variables:
           AMAZONQ_APP_ID: !Ref QBusinessApplicationId
           AMAZONQ_REGION: !Ref AWS::Region
-          IAM_ROLE_ARN: !GetAtt QServiceRole.Arn 
+          IAM_ROLE_ARN: !GetAtt QBusinessServiceRole.Arn 
       Handler: user_prompts.handler
       Role: !GetAtt IdentityCenterTokenLambdaServiceRole.Arn
       Runtime: python3.11
@@ -655,7 +655,7 @@ Resources:
         Variables:
           AMAZONQ_APP_ID: !Ref QBusinessApplicationId
           AMAZONQ_REGION: !Ref AWS::Region
-          IAM_ROLE_ARN: !GetAtt QServiceRole.Arn 
+          IAM_ROLE_ARN: !GetAtt QBusinessServiceRole.Arn 
       Handler: user_conversation.handler
       Role: !GetAtt IdentityCenterTokenLambdaServiceRole.Arn
       Runtime: python3.11
@@ -729,7 +729,7 @@ Resources:
           Action:
           - "sts:AssumeRole"
           - "sts:SetContext"
-          Resource: !GetAtt QServiceRole.Arn
+          Resource: !GetAtt QBusinessServiceRole.Arn
         - Sid: AllowTokenExchange
           Effect: Allow
           Action:
@@ -869,7 +869,7 @@ Resources:
       FunctionName: !GetAtt PreSignedURLCreateLambda.Arn
       Principal: apigateway.amazonaws.com
       SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${APIGateway}/*'
-  QManagedPolicy:
+  QBusinessManagedPolicy:
     Type: AWS::IAM::ManagedPolicy
     Properties:
       PolicyDocument:
@@ -884,7 +884,7 @@ Resources:
             - qbusiness:DeleteConversation
           Resource: !Sub "arn:${AWS::Partition}:qbusiness:${AWS::Region}:${AWS::AccountId}:application/${QBusinessApplicationId}"
         
-  QServiceRole:
+  QBusinessServiceRole:
     Type: AWS::IAM::Role
     Properties:
       AssumeRolePolicyDocument:
@@ -902,7 +902,7 @@ Resources:
               "aws:PrincipalArn": !GetAtt IdentityCenterTokenLambdaServiceRole.Arn
       Path: /
       ManagedPolicyArns:
-      - !Ref QManagedPolicy
+      - !Ref QBusinessManagedPolicy
   
   ##Create an App for our application in the Amplify Console
   AmplifyApp:

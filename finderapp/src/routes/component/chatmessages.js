@@ -13,6 +13,10 @@ const ChatMessages = ({ data }) => {
         }
     }, [data]);
 
+    useEffect(() => {
+        window.audioSeeker()
+    });
+
     const generateCitation = (num) => {
         return `<span class="citation_pointer">${num}</span>`
     }

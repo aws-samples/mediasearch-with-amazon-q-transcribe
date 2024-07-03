@@ -15,7 +15,7 @@ window.audioSeeker = () => {
     try{
       audio.currentTime = val[i].value
     }catch(e){
-      console.log(e)
+      console.info(val[i].key + " player not ready")
     }
   }
 }

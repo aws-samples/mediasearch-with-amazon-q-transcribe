@@ -10,12 +10,14 @@ Amplify.configure(window.aws_config);
 
 window.audioSeeker = () => {
   let val = JSON.parse(window.localStorage.getItem('audioSeeker'))
-  for (let i = 0; i < val.length; i++) {
-    let audio = document.getElementById(val[i].key)
-    try{
-      audio.currentTime = val[i].value
-    }catch(e){
-      console.info(val[i].key + " player not ready")
+  if(val && val.length){
+    for (let i = 0; i < val.length; i++) {
+      let audio = document.getElementById(val[i].key)
+      try{
+        audio.currentTime = val[i].value
+      }catch(e){
+        console.info(val[i].key + " player not ready")
+      }
     }
   }
 }

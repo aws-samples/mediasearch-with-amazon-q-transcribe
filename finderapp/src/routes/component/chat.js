@@ -19,7 +19,7 @@ const Chat = ({ userinfo, signOut, ssoidc }) => {
 
     useEffect(() => {
         const init = async () => {
-            if (userinfo && userinfo.id !== null) {
+            if (userinfo && userinfo.id !== null && ssoidc && ssoidc.idToken != null) {
                 setFlashMessage(flashMessageGenerator("Loading History"))
                 setIsLoading(true);
                 await getConversationList();

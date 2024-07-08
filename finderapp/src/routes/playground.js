@@ -25,11 +25,16 @@ const Playground = () => {
                             delete tokenData["scope"];
                             delete tokenData["issuedTokenType"];
                             delete tokenData["tokenType"];
+                            tokenData["generatedAt"] = Date.now();
                             localStorage.setItem(SSO_IDC_VALUE, JSON.stringify(tokenData))
                             setSsoidc(JSON.parse(JSON.stringify(tokenData)))
                         }
                         else {
-                            setSsoidc(JSON.parse(localStorage.getItem(SSO_IDC_VALUE)))
+                            let idcValue = JSON.parse(localStorage.getItem(SSO_IDC_VALUE))
+                            if((Date.now() - idcValue["generatedAt"]) > idcValue["expiresIn"]*1000)
+                                onSignOut()
+                            else
+                                setSsoidc(idcValue)
                         }
                     } catch (e) {
                         localStorage.removeItem(SSO_IDC_VALUE);

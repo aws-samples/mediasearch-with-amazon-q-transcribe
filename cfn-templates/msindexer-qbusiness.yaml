@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: MIT-0
 #
 Description: |
-  MediaSearch Q Business Solution - Indexer stack (v0.1.1)
+  MediaSearch Q Business Solution - Indexer stack (v0.1.0)
 Resources:
   QBusinessMediaSearchServiceRole:
     Type: AWS::IAM::Role

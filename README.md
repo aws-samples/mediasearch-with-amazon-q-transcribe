@@ -1,7 +1,9 @@
 # MediaSearch project (mediasearch-with-amazon-q-transcribe)
 
 In today's digital landscape, the demand for audio and video content is skyrocketing. Organizations are increasingly leveraging media to engage with their audiences in innovative ways. From product documentation in video format to podcasts replacing traditional blog posts, content creators are exploring diverse channels to reach a wider audience. The rise of virtual workplaces has also led to a surge in content captured through recorded meetings, calls, and voicemails. Additionally, contact centers generate a wealth of media content, including support calls, screen share recordings, and post-call surveys.
-This solution makes audio and video media content searchable in an Amazon Q Business Index. Amazon Q Business offers 2 types of indexes to customers. Amazon Q Native index and Kendra.
+This solution makes audio and video media content searchable in an Amazon Q Business Index. Amazon Q Business offers 2 types of retrievers to customers. Amazon Q Native retriever and Kendra retriever.
+
+**Note:** After you have set up an Amazon Q Business application using either a Native or a Kendra retriever, it's not possible to switch between these two retriever types using the solution. The initial choice of retriever is permanent for the Amazon Q Business application.
 
 The solution allows customers to index media files from s3 buckets on YouTube Playlists.
 
@@ -9,7 +11,7 @@ The solution allows customers to index media files from s3 buckets on YouTube Pl
 
 ## Getting started
 
-See the blog post to get started: [Enhance your Media search experience using Amazon Q Business and Amazon Transcribe](https://aws.amazon.com/blogs/machine-learning/enhance-your-mediasearch-experience-using-amazonq-business-and-amazon-transcribe/)
+See the blog post to get started: [Enhance your Media search experience using Amazon Q Business and Amazon Transcribe](https://aws.amazon.com/blogs/machine-learning/enhance-your-media-search-experience-using-amazon-q-business-and-amazon-transcribe/)
 
 
 ## Configuring the AWS IAM Identity Centre Application

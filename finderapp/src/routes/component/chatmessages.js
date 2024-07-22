@@ -13,6 +13,10 @@ const ChatMessages = ({ data }) => {
         }
     }, [data]);
 
+    useEffect(() => {
+        window.audioSeeker()
+    });
+
     const generateCitation = (num) => {
         return `<span class="citation_pointer">${num}</span>`
     }
@@ -151,7 +155,7 @@ const ChatMessages = ({ data }) => {
                                     triggerType="text"
                                     content={source.snippet}
                                 >
-                                    {(source.snippet.length > 20 ? source.snippet.substring(0, 150) + "..." : source.snippet)}
+                                    {(source.snippet.length > 20 ? source.snippet.substring(0, 250) + "..." : source.snippet)}
                                 </Popover>
                             </SpaceBetween>
 

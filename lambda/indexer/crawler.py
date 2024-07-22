@@ -31,7 +31,7 @@ LAMBDA = boto3.client('lambda')
 # generate a unique job name for transcribe satisfying the naming regex requirements 
 def transcribe_job_name(*args):
     timestamp=time.time()
-    job_name = "__".join(args) + "_" + str(timestamp)
+    job_name = "__".join(args)[:175] + "_" + str(timestamp)
     job_name = re.sub(r"[^0-9a-zA-Z._-]+","--",job_name)
     return job_name
 

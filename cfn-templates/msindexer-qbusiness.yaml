@@ -65,6 +65,7 @@ Resources:
             Principal:
               Service:
                 - lambda.amazonaws.com
+                - qbusiness.amazonaws.com
             Action:
               - sts:AssumeRole
       Path: /
@@ -95,7 +96,9 @@ Resources:
                   - qbusiness:CreateDataSource
                   - qbusiness:DeleteDataSource
                   - qbusiness:StartDataSourceSyncJob
-                  - qbusiness:StopDataSourceSyncJob                  
+                  - qbusiness:StopDataSourceSyncJob 
+                  - kendra:DescribeIndex
+                  - kendra:Retrieve             
                 Resource: '*'
               - Effect: Allow
                 Action: iam:PassRole
@@ -139,6 +142,7 @@ Resources:
               - qbusiness:GetApplication
               - qbusiness:ListPlugins
               - qbusiness:GetChatControlsConfiguration
+              - qbusiness:ListRetrievers 
               Resource: !GetAtt QBusinessApplication.ApplicationArn
             - Sid: QBusinessQAppsPermissions
               Effect: Allow
@@ -183,6 +187,7 @@ Resources:
       Type: STARTER      
   MediasearchQBusinessDatasource:
     Type: AWS::QBusiness::DataSource
+    Condition: RetrieverTypeNative
     Properties:
       ApplicationId: !Ref QBusinessApplication
       Configuration:
@@ -190,20 +195,25 @@ Resources:
         version: 1.0.0
       Description: MediasearchQBusinessDatasource
       DisplayName: MediasearchQBusinessDatasource
-      #IndexId: !GetAtt MediaQBusinessNativeIndex.IndexId
-      IndexId: !If [RetrieverTypeKendra, !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId], !GetAtt MediaQBusinessNativeIndex.IndexId ]
+      IndexId: !GetAtt MediaQBusinessNativeIndex.IndexId
       RoleArn: !GetAtt QBusinessMediaSearchServiceRole.Arn
   QBusinessRetriever:
     Type: AWS::QBusiness::Retriever
     Properties:
       Configuration: !If
-            - RetrieverTypeKendra
-            - {"KendraIndexConfiguration": {"IndexId": !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId] }} 
-            - {"NativeIndexConfiguration": {"IndexId": !GetAtt MediaQBusinessNativeIndex.IndexId}}
-      DisplayName: QBusinessRetrieverNative
+        - RetrieverTypeKendra
+        - {"KendraIndexConfiguration": {"IndexId": !If [CreateKendraIndex, !GetAtt MediaKendraIndex.Id, !Ref ExistingKendraIndexId] }}
+        - {"NativeIndexConfiguration": {"IndexId": !GetAtt MediaQBusinessNativeIndex.IndexId}}
+      DisplayName: !If
+        - RetrieverTypeKendra
+        - QBusinessRetrieverKendra
+        - QBusinessRetrieverNative
       ApplicationId: !Ref QBusinessApplication
       RoleArn: !GetAtt QBusinessApplicationIAMRole.Arn
-      Type: NATIVE_INDEX
+      Type: !If
+        - RetrieverTypeKendra
+        - KENDRA_INDEX
+        - NATIVE_INDEX
   QBusinessWebExperience:
     Type: AWS::QBusiness::WebExperience
     Properties:

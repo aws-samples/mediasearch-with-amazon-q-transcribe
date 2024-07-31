@@ -7,11 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2024-08-01
+### Added
+-  Mediasearch Q Business - Removing dependency on AWS CodeCommit
 
 ## [0.1.0] - 2024-07-22
 ### Added
 -  Mediasearch Q Business - Initial release
 
 
-[Unreleased]: https://github.com/aws-samples/mediasearch-with-amazon-q-transcribe/compare/v0.1.0...develop
+[Unreleased]: https://github.com/aws-samples/mediasearch-with-amazon-q-transcribe/compare/v0.1.1...develop
 [0.1.0]: https://github.com/aws-samples/mediasearch-with-amazon-q-transcribe/releases/tag/v0.1.0
+[0.1.1]: https://github.com/aws-samples/mediasearch-with-amazon-q-transcribe/releases/tag/v0.1.1

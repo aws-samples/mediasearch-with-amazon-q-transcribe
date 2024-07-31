@@ -1,4 +1,4 @@
-# MediaSearch project (mediasearch-with-amazon-q-transcribe)
+# MediaSearch Q Business Solution
 
 In today's digital landscape, the demand for audio and video content is skyrocketing. Organizations are increasingly leveraging media to engage with their audiences in innovative ways. From product documentation in video format to podcasts replacing traditional blog posts, content creators are exploring diverse channels to reach a wider audience. The rise of virtual workplaces has also led to a surge in content captured through recorded meetings, calls, and voicemails. Additionally, contact centers generate a wealth of media content, including support calls, screen share recordings, and post-call surveys.
 This solution makes audio and video media content searchable in an Amazon Q Business Index. Amazon Q Business offers 2 types of retrievers to customers. Amazon Q Native retriever and Kendra retriever.
@@ -151,7 +151,7 @@ If you see this warning, run the publish script again with different buckets, to
 
 ## Learn More
 
-See the [blog post](https://aws.amazon.com/blogs/machine-learning/enhance-your-mediasearch-experience-using-amazonq-business-and-amazon-transcribe/) for much more information, including:
+See the [blog post](https://aws.amazon.com/blogs/machine-learning/enhance-your-media-search-experience-using-amazon-q-business-and-amazon-transcribe/) for much more information, including:
 - How to easily deploy MediaSearch Q Business using publically published templates and sample files in us-east-1
 - Cost information
 - Tutorial for getting started and testing with the sample files

@@ -6,3 +6,5 @@ layers/jwt/python
 layers/yt_dlp/python
 layers/ffmpeg/bin
 deploy_*
+finderapp/build.zip
+finderapp/build
